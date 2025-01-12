@@ -19,7 +19,7 @@ export function generate_text(instruction: string, prompt: string): string {
   ])
 
   // minmize temp to ensure consistency of NER
-  input.temperature = 0.0
+  input.temperature = 0.3
 
   const output = model.invoke(input)
   return output.choices[0].message.content.trim()

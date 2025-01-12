@@ -23,6 +23,10 @@ function perform_ner(input: string): TopicContentPair[] {
   Example:
   * input: 'Did we get the budget estimate?'
   * output: '[{"topic": "Budget Estimate", "content": "Did we get the budget estimate?"}]'
+  -------------------
+  Generate outputs matching the example above (i.e., only the array of topic-content pairs)!
+  DO NOT generate a program to solve the problem. You must directly generate the output itself and nothing else outside of the output.
+  You need to make sure that the content of all generated pairs amounts to the input eactly, without ommitting anything!
   `;
   const ner_stringified = generate_text(system_prompt, input)
   const ner_values = unpackStringToTCP(ner_stringified)
