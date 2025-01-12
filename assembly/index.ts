@@ -3,7 +3,7 @@ import { models } from "@hypermode/modus-sdk-as"
 import { EmbeddingsModel } from "@hypermode/modus-sdk-as/models/experimental/embeddings"
 import { SlackEventWrapper, SlackChannelMessageEvent, TopicContentPair } from "./classes"
 import { JSON } from "json-as"
-import { generate_text, unpackStringToTCP } from "./utils"
+import { assign_message_to_topic, create_message, create_topic, generate_text, unpackStringToTCP } from "./utils"
 
 export function handle_slack_event(input: string): TopicContentPair[] {
   const topic_content_pairs = perform_ner(input)
@@ -30,5 +30,10 @@ function perform_ner(input: string): TopicContentPair[] {
   `;
   const ner_stringified = generate_text(system_prompt, input)
   const ner_values = unpackStringToTCP(ner_stringified)
+  ner_values.forEach(val => {
+    create_topic(val.topic)
+    create_message(val.content)
+    assign_message_to_topic(val.content, val.topic)
+  })
   return ner_values
 }

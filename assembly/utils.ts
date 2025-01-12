@@ -1,4 +1,4 @@
-import { models } from "@hypermode/modus-sdk-as"
+import { models, neo4j } from "@hypermode/modus-sdk-as"
 import {
   OpenAIChatModel,
   ResponseFormat,
@@ -35,8 +35,21 @@ export function unpackStringToTCP(jsonString: string): TopicContentPair[] {
  * NEO4J logic
  */
 
-export function create_topic(input: string) {}
+export function create_topic(input: string): void {
+    const query = `CREATE (node:Topic {name: "${input}"})`
+    const result = neo4j.executeQuery("neo4j", query)
+}
 
-export function create_message(input: string) {}
+export function create_message(input: string): void {
+    const query = `CREATE (node:Message {name: "${input}"})`
+    const result = neo4j.executeQuery("neo4j", query)
+}
 
-export function assign_message_to_topic(message: string, topic: string) {}
+export function assign_message_to_topic(message: string, topic: string): void {
+    const query = `
+    MATCH (m:Message WHERE m.name = "${message}")
+    MATCH (t:Topic WHERE t.name = "${topic}")
+    CREATE (m)-[:BELONGS_TO]->(t)
+    `
+    const result = neo4j.executeQuery("neo4j", query)
+}
