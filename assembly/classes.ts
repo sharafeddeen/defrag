@@ -25,11 +25,16 @@ export class SlackEventWrapper {
 
 /**
  * A slack message may mention many entities.
- * This class encodes an entity along with 
+ * This class encodes a topic along with 
  * the exact substring in the slack message 
- * related to that entity.
+ * related to that topic.
  */
-export class EntityContentPair {
-    entity!: string
-    content!: string
+export class TopicContentPair {
+    topic!: string;
+    content!: string;
+
+    constructor(topic: string, content: string) {
+        this.topic = topic;
+        this.content = content;
+    }
 }
