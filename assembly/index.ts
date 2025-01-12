@@ -15,7 +15,15 @@ export function handle_slack_event(input: string): TopicContentPair[] {
  * to increase topic-assignment accuracy
  */
 function perform_ner(input: string): TopicContentPair[] {
-  const system_prompt = `You take the user input & generate an array of topic-content pairs. Each pair matches this type: { topic: string, content: string }.`;
+  const system_prompt = `You take the user input & generate ONLY an array of topic-content pairs that describes that input.
+  Extract the topic from a logically coherent & separate piece of the message, and assign that piece to the content part of the pair.
+  A message will contain at least one pair, but maybe more.
+  Each pair matches this type: { topic: string, content: string }.
+  -------------------
+  Example:
+  * input: 'Did we get the budget estimate?'
+  * output: '[topic: "Budget Estimate", content: "Did we get the budget estimate?"]'
+  `;
   const ner_stringified = generate_text(system_prompt, input)
   console.log(ner_stringified)
   const ner_values = unpackStringToTCP(ner_stringified)
