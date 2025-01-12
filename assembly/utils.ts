@@ -30,3 +30,13 @@ export function unpackStringToTCP(jsonString: string): TopicContentPair[] {
     const parsed = JSON.parse<TopicContentPair[]>(jsonString);
     return parsed
 }
+
+/**
+ * NEO4J logic
+ */
+
+export function create_topic(input: string) {}
+
+export function create_message(input: string) {}
+
+export function assign_message_to_topic(message: string, topic: string) {}
