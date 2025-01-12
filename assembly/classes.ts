@@ -1,35 +1,35 @@
+// check out the docs here: https://api.slack.com/events/message.channels
 
 @json
-/**
- * A Movie
- */
-export class Movie {
-  id!: string
-  title!: string
-  plot!: string
-  rating!: f32
-  embedding: f32[] = []
-
-  constructor(id: string, title: string, plot: string, rating: f32) {
-    this.id = id
-    this.title = title
-    this.plot = plot
-    this.rating = rating
-    this.embedding = []
-  }
+export class SlackChannelMessageEvent {
+    type!: string
+    channel!: string
+    user!: string
+    text!: string
+    ts!: string
+    event_ts!: string
+    channel_type!: string
 }
 
-
 @json
-/**
- * Results of a movie search, includes movie details and a similarity score
- */
-export class MovieResult {
-  movie!: Movie
-  score: f32 = 0.0
+export class SlackEventWrapper {
+    token!: string
+    team_id!: string
+    api_app_id!: string
+    event!: SlackChannelMessageEvent
+    type!: string
+    authed_teams!: string[]
+    event_id!: string
+    event_time!: string
+}
 
-  constructor(movie: Movie, score: f32) {
-    this.movie = movie
-    this.score = score
-  }
+/**
+ * A slack message may mention many entities.
+ * This class encodes an entity along with 
+ * the exact substring in the slack message 
+ * related to that entity.
+ */
+export class EntityContentPair {
+    entity!: string
+    content!: string
 }
