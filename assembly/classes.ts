@@ -29,6 +29,7 @@ export class SlackEventWrapper {
  * the exact substring in the slack message 
  * related to that topic.
  */
+@json // necessary to parse to this type
 export class TopicContentPair {
     topic!: string;
     content!: string;

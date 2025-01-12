@@ -22,10 +22,9 @@ function perform_ner(input: string): TopicContentPair[] {
   -------------------
   Example:
   * input: 'Did we get the budget estimate?'
-  * output: '[topic: "Budget Estimate", content: "Did we get the budget estimate?"]'
+  * output: '[{"topic": "Budget Estimate", "content": "Did we get the budget estimate?"}]'
   `;
   const ner_stringified = generate_text(system_prompt, input)
-  console.log(ner_stringified)
   const ner_values = unpackStringToTCP(ner_stringified)
   return ner_values
 }
