@@ -7,6 +7,8 @@ import {
 } from "@hypermode/modus-sdk-as/models/openai/chat"
 import { TopicContentPair } from "./classes"
 import { JSON } from "json-as"
+import { Integer } from "assemblyscript-json/assembly/JSON"
+import { EmbeddingsModel } from "@hypermode/modus-sdk-as/models/experimental/embeddings"
 
 // this model name should match the one defined in the modus.json manifest file
 const modelName: string = "text-generator"
@@ -31,18 +33,46 @@ export function unpackStringToTCP(jsonString: string): TopicContentPair[] {
     return parsed
 }
 
-/**
+export function embed(texts: string[]): f32[][] {
+    // "minilm" is the model name declared in the application manifest
+    const model = models.getModel<EmbeddingsModel>("minilm")
+    const input = model.createInput(texts)
+    const output = model.invoke(input)
+    return output.predictions
+  }
+
+/********************
  * NEO4J logic
- */
+ *******************/
+
+export function create_vector_index_safe(): void {
+    const createQuery = "CREATE VECTOR INDEX `topic-index` IF NOT EXISTS FOR (t:Topic) ON (t.embedding)"
+    neo4j.executeQuery("neo4j", createQuery)
+}
+
 
 export function create_topic(input: string): void {
-    const query = `CREATE (node:Topic {name: "${input}"})`
-    const result = neo4j.executeQuery("neo4j", query)
+    // Generate embedding for the topic name
+    const embedding = embed([input])[0] // Assume embed returns an array of embeddings
+
+    // Save the topic with its embedding to Neo4j
+    const query = `CREATE (node:Topic {name: $name, embedding: $embedding})`
+    const vars = new neo4j.Variables()
+    vars.set("name", input)
+    vars.set("embedding", embedding)
+    neo4j.executeQuery("neo4j", query, vars)
 }
 
 export function create_message(input: string): void {
-    const query = `CREATE (node:Message {name: "${input}"})`
-    const result = neo4j.executeQuery("neo4j", query)
+    // Generate embedding for the message content
+    const embedding = embed([input])[0]
+
+    // Save the message with its embedding to Neo4j
+    const query = `CREATE (node:Message {name: $name, embedding: $embedding})`
+    const vars = new neo4j.Variables()
+    vars.set("name", input)
+    vars.set("embedding", embedding)
+    neo4j.executeQuery("neo4j", query, vars)
 }
 
 export function assign_message_to_topic(message: string, topic: string): void {
@@ -52,4 +82,36 @@ export function assign_message_to_topic(message: string, topic: string): void {
     CREATE (m)-[:BELONGS_TO]->(t)
     `
     const result = neo4j.executeQuery("neo4j", query)
+}
+
+/** in order of most related first */
+export function find_related_topics(topic: string, limit: i16): string[] {
+    create_vector_index_safe() // if not already created
+    // Generate embedding for the input
+    const emb = embed([topic])[0] // Assume one embedding for one topic
+
+    const vars = new neo4j.Variables()
+    vars.set("embedding", emb)
+    vars.set("limit", limit)
+
+    const query = `
+    CALL db.index.vector.queryNodes("topic-index", $limit, $embedding)
+    YIELD node AS result, score
+    RETURN result.name AS name, score
+    ORDER BY score DESC
+    `
+    const result = neo4j.executeQuery("neo4j", query, vars)
+
+    const relatedTopics: string[] = []
+
+    // Check if query was successful and has records
+    if (result && result.Records.length > 0) {
+        for (let i = 0; i < result.Records.length; i++) {
+            const topicName = result.Records[i].getValue<string>("name")
+            relatedTopics.push(topicName)
+        }
+    }
+    
+    // Return an empty array if no related topics were found
+    return relatedTopics
 }
