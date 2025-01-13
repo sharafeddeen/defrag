@@ -103,9 +103,13 @@ export function search_kg(input: string): string {
   `
   const query = generate_text(system_prompt, input)
   const query_results = neo4j.executeQuery("neo4j", query).Records
-  let results: Map<string,string>[] = []
   let stres: string[] = []
-  //for (let i = 0; i < query_results.length; i++) results.push(query_results[i].asMap())
-  for (let i = 0; i < query_results.length; i++) stres.push(JSON.stringify(query_results[i].asMap()))
-  return `${stres}`
+  for (let i = 0; i < query_results.length; i++) {
+    let result = new Map<string, string>()
+    let value_map = new Map<string, string>()
+    value_map = JSON.parse(query_results[i].Values[0])
+    result.set("name", query_results[i].getValue<Map<string,string>>("Props").toString())
+    stres.push(JSON.stringify(result))
+  }
+  return `Here you go: (((${stres})))`
 }
