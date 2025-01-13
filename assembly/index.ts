@@ -1,7 +1,7 @@
 import { neo4j } from "@hypermode/modus-sdk-as"
 import { models } from "@hypermode/modus-sdk-as"
 import { EmbeddingsModel } from "@hypermode/modus-sdk-as/models/experimental/embeddings"
-import { TopicContentPair, Person } from "./classes"
+import { TopicContentPair, Person, Message } from "./classes"
 import { JSON } from "json-as"
 import { create_message, create_topic, find_related_topics, generate_text, unpackStringToTCP, update_persons, update_topic_participants } from "./utils"
 
@@ -104,12 +104,7 @@ export function search_kg(input: string): string {
   const query = generate_text(system_prompt, input)
   const query_results = neo4j.executeQuery("neo4j", query).Records
   let stres: string[] = []
-  for (let i = 0; i < query_results.length; i++) {
-    let result = new Map<string, string>()
-    let value_map = new Map<string, string>()
-    value_map = JSON.parse(query_results[i].Values[0])
-    result.set("name", query_results[i].getValue<Map<string,string>>("Props").toString())
-    stres.push(JSON.stringify(result))
-  }
-  return `Here you go: (((${stres})))`
+  for (let i = 0; i < query_results.length; i++) stres.push(JSON.stringify(query_results[i].asMap()))
+  const system_prompt_with_context = `Answer the user prompt given this context: ${stres}`
+  return generate_text(system_prompt_with_context, input)
 }

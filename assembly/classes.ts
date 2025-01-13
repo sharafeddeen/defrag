@@ -29,6 +29,7 @@ export class Message {
     content: string;
     timestamp!: number;
     belongs_to!: Topic;
+    embedding!: f32[][] | null;
     constructor(content: string) {
         this.content = content
     }
@@ -37,6 +38,7 @@ export class Message {
 @json
 export class Topic {
     name: string;
+    embedding!: f32[][] | null;
     constructor(name: string) {
         this.name = name
     }
