@@ -106,9 +106,12 @@ export function find_related_topics(topic: string, limit: i16): string[] {
     if (result && result.Records.length > 0) {
         for (let i = 0; i < result.Records.length; i++) {
             const topicName = result.Records[i].getValue<string>("name")
-            relatedTopics.push(topicName)
+            const score = result.Records[i].getValue<f32>("score")
+            console.log(`topic (${topicName}) score is ${score}`)
+            if (score > 0.8) relatedTopics.push(topicName)
         }
     }
+    console.log(`related topics: ${relatedTopics}`)
     
     // Return an empty array if no related topics were found
     return relatedTopics
