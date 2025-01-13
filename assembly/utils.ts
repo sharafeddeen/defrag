@@ -66,7 +66,7 @@ export function create_topic(input: string): void {
 export function create_message(user: Person, topic: string, message: string): void {
     const embedding = embed([message])[0]
     const query = `
-    CREATE (m:Message {name: $messageName, embedding: $embedding})
+    CREATE (m:Message {name: $messageName, embedding: $embedding, timestamp: timestamp()})
     WITH m
     MATCH (p:Person {name: $personName})
     MERGE (p)-[:SENT]->(m)
