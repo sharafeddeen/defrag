@@ -1,7 +1,7 @@
 import { neo4j } from "@hypermode/modus-sdk-as"
 import { models } from "@hypermode/modus-sdk-as"
 import { EmbeddingsModel } from "@hypermode/modus-sdk-as/models/experimental/embeddings"
-import { SlackEventWrapper, SlackChannelMessageEvent, TopicContentPair, Person } from "./classes"
+import { TopicContentPair, Person } from "./classes"
 import { JSON } from "json-as"
 import { create_message, create_topic, find_related_topics, generate_text, unpackStringToTCP, update_persons, update_topic_participants } from "./utils"
 
@@ -14,7 +14,7 @@ export function channel_b(user: string, input: string): TopicContentPair[] {
 }
 
 function handle_slack_event(user: string, input: string): TopicContentPair[] {
-  const topic_content_pairs = perform_ner(input)
+  const topic_content_pairs = perform_ner_incoming_message(input)
   const person = new Person(user)
   update_kg(person, topic_content_pairs)
   return topic_content_pairs
@@ -24,7 +24,7 @@ function handle_slack_event(user: string, input: string): TopicContentPair[] {
  * perform NER at first vs passing entire message text + KG to LLM
  * to increase topic-assignment accuracy
  */
-function perform_ner(input: string): TopicContentPair[] {
+function perform_ner_incoming_message(input: string): TopicContentPair[] {
   const system_prompt = `You take the user input & generate ONLY an array of topic-content pairs that describes that input.
   Extract the topic from a logically coherent & separate piece of the message, and assign that piece to the content part of the pair.
   A message will contain at least one pair, but maybe more.
@@ -61,4 +61,51 @@ function update_kg(user: Person, pairs: TopicContentPair[]): void {
 
     create_message(user, val.topic, val.content)
   }
+}
+
+export function search_kg(input: string): string {
+  const topics = find_related_topics(input, 1000, 0.6) // just a temp hack around enabling vector search after ner
+  const system_prompt = `
+  Consider a knowledge graph with the following node & relationship types:
+  ============================
+  Person (node):
+  """
+  - name: string; (attribute)
+  - sent: Message[]; (relationship)
+  """
+  Message (node):
+  """
+  - content: string; (attribute)
+  - timestamp: number; (attribute)
+  - belongs_to: Topic; (relationship)
+  """
+  Topic (node):
+  """
+  - name: string; (attribute)
+  """
+  (Person)-[:SENT]->(Message)
+  (Message)-[:BELONGS_TO]->(Topic)
+  ============================
+  
+  Write a Cypher query to answer the user's prompt.
+  Your output must only be the query & nothing else.
+  
+  Example:
+  - input: "Who are the people in here?"
+  - output: "MATCH (p:Person) RETURN p"
+  
+  Your output must return all the attributes of a node, not just a single attribute, unless explicitly instructed by the user.
+  DO NOT wrap the output query in backticks!
+
+  Note that, depending on the user prompt, you may return all messages.
+  
+  Here are the existing topics in the knowledge graph related to the user message: [${topics}]
+  `
+  const query = generate_text(system_prompt, input)
+  const query_results = neo4j.executeQuery("neo4j", query).Records
+  let results: Map<string,string>[] = []
+  let stres: string[] = []
+  //for (let i = 0; i < query_results.length; i++) results.push(query_results[i].asMap())
+  for (let i = 0; i < query_results.length; i++) stres.push(JSON.stringify(query_results[i].asMap()))
+  return `${stres}`
 }

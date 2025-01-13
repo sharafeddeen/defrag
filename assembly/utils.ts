@@ -5,7 +5,7 @@ import {
   SystemMessage,
   UserMessage,
 } from "@hypermode/modus-sdk-as/models/openai/chat"
-import { Person, TopicContentPair } from "./classes"
+import { NERWrapper, Person, TopicContentPair } from "./classes"
 import { JSON } from "json-as"
 import { Integer } from "assemblyscript-json/assembly/JSON"
 import { EmbeddingsModel } from "@hypermode/modus-sdk-as/models/experimental/embeddings"
@@ -14,14 +14,14 @@ import { EmbeddingsModel } from "@hypermode/modus-sdk-as/models/experimental/emb
 const modelName: string = "text-generator"
 
 export function generate_text(instruction: string, prompt: string): string {
-  const model = models.getModel<OpenAIChatModel>(modelName)
+  const model = models.getModel<OpenAIChatModel>("gemini")
   const input = model.createInput([
     new SystemMessage(instruction),
     new UserMessage(prompt),
   ])
 
   // minmize temp to ensure consistency of NER
-  input.temperature = 0.3
+  input.temperature = 0.7
 
   const output = model.invoke(input)
   return output.choices[0].message.content.trim()
@@ -83,7 +83,7 @@ export function create_message(user: Person, topic: string, message: string): vo
 }
 
 /** in order of most related first */
-export function find_related_topics(topic: string, limit: i16): string[] {
+export function find_related_topics(topic: string, limit: i16, similarity_threshold: f32 = 0.8): string[] {
     create_vector_index_safe() // if not already created
     // Generate embedding for the input
     const emb = embed([topic])[0] // Assume one embedding for one topic
@@ -108,7 +108,7 @@ export function find_related_topics(topic: string, limit: i16): string[] {
             const topicName = result.Records[i].getValue<string>("name")
             const score = result.Records[i].getValue<f32>("score")
             console.log(`topic (${topicName}) score is ${score}`)
-            if (score > 0.8) relatedTopics.push(topicName)
+            if (score > similarity_threshold) relatedTopics.push(topicName)
         }
     }
     console.log(`related topics: ${relatedTopics}`)
@@ -137,4 +137,33 @@ export function update_persons(input: Person): void {
     const vars = new neo4j.Variables()
     vars.set("name", input.name)    
     neo4j.executeQuery("neo4j", query, vars)
+}
+
+export function search_ner(prompt: string): NERWrapper {
+    const model = models.getModel<OpenAIChatModel>("gemini")
+    model.debug = true
+    const input = model.createInput([new SystemMessage("You perform named-entity reconition on a user prompt."), new UserMessage(prompt)])
+    
+    input.responseFormat = ResponseFormat.JsonSchema(`{
+        "name": "dancehall_lyrics",
+        "schema": {
+        "type": "object",
+        "properties": {
+          "year": {
+            "type": "integer"
+          },
+          "lyrics": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "year",
+          "lyrics"
+        ]
+      }}`)
+    
+    input.temperature = 0.7
+    const output = model.invoke(input)
+  
+    return output.choices[0].message.content.trim()
 }

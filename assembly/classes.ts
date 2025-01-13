@@ -1,28 +1,3 @@
-// check out the docs here: https://api.slack.com/events/message.channels
-
-@json
-export class SlackChannelMessageEvent {
-    type!: string
-    channel!: string
-    user!: string
-    text!: string
-    ts!: string
-    event_ts!: string
-    channel_type!: string
-}
-
-@json
-export class SlackEventWrapper {
-    token!: string
-    team_id!: string
-    api_app_id!: string
-    event!: SlackChannelMessageEvent
-    type!: string
-    authed_teams!: string[]
-    event_id!: string
-    event_time!: string
-}
-
 /**
  * A slack message may mention many entities.
  * This class encodes a topic along with 
@@ -40,9 +15,41 @@ export class TopicContentPair {
     }
 }
 
+@json
 export class Person {
     name: string;
+    sent!: Message[];
     constructor(name: string) {
         this.name = name;
+    }
+}
+
+@json
+export class Message {
+    content: string;
+    timestamp!: number;
+    belongs_to!: Topic;
+    constructor(content: string) {
+        this.content = content
+    }
+}
+
+@json
+export class Topic {
+    name: string;
+    constructor(name: string) {
+        this.name = name
+    }
+}
+
+@json
+export class NERWrapper {
+    persons: null | Person[];
+    messages: null | Message[];
+    topics: null | Topic[];
+    constructor (persons: Person[] | null = null, messages: Message[] | null = null, topics: Topic[] | null = null) {
+        this.persons = persons
+        this.messages = messages
+        this.topics = topics
     }
 }
