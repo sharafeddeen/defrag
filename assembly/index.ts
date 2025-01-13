@@ -5,8 +5,15 @@ import { SlackEventWrapper, SlackChannelMessageEvent, TopicContentPair, Person }
 import { JSON } from "json-as"
 import { create_message, create_topic, find_related_topics, generate_text, unpackStringToTCP, update_persons, update_topic_participants } from "./utils"
 
+export function channel_a(user: string, input: string): TopicContentPair[] {
+  return handle_slack_event(user, input)
+}
 
-export function handle_slack_event(user: string, input: string): TopicContentPair[] {
+export function channel_b(user: string, input: string): TopicContentPair[] {
+  return handle_slack_event(user, input)
+}
+
+function handle_slack_event(user: string, input: string): TopicContentPair[] {
   const topic_content_pairs = perform_ner(input)
   const person = new Person(user)
   update_kg(person, topic_content_pairs)
