@@ -1,12 +1,15 @@
 import { neo4j } from "@hypermode/modus-sdk-as"
 import { models } from "@hypermode/modus-sdk-as"
 import { EmbeddingsModel } from "@hypermode/modus-sdk-as/models/experimental/embeddings"
-import { SlackEventWrapper, SlackChannelMessageEvent, TopicContentPair } from "./classes"
+import { SlackEventWrapper, SlackChannelMessageEvent, TopicContentPair, Person } from "./classes"
 import { JSON } from "json-as"
-import { assign_message_to_topic, create_message, create_topic, find_related_topics, generate_text, unpackStringToTCP } from "./utils"
+import { create_message, create_topic, find_related_topics, generate_text, unpackStringToTCP, update_persons, update_topic_participants } from "./utils"
 
-export function handle_slack_event(input: string): TopicContentPair[] {
+
+export function handle_slack_event(user: string, input: string): TopicContentPair[] {
   const topic_content_pairs = perform_ner(input)
+  const person = new Person(user)
+  update_kg(person, topic_content_pairs)
   return topic_content_pairs
 }
 
@@ -30,12 +33,25 @@ function perform_ner(input: string): TopicContentPair[] {
   `;
   const ner_stringified = generate_text(system_prompt, input)
   const ner_values = unpackStringToTCP(ner_stringified)
-  ner_values.forEach(val => {
-    const related_topics = find_related_topics(val.topic, 2)
-    if (related_topics.length == 0) create_topic(val.topic)
-    else val.topic = related_topics[0]
-    create_message(val.content)
-    assign_message_to_topic(val.content, val.topic)
-  })
   return ner_values
+}
+
+function update_kg(user: Person, pairs: TopicContentPair[]): void {
+  // Update the person in the knowledge graph
+  update_persons(user)
+  for (let i = 0; i < pairs.length; i++) {
+    const val = pairs[i]
+
+    // Find related topics and handle topic creation or association
+    const relatedTopics = find_related_topics(val.topic, 2)
+    if (relatedTopics.length == 0) {
+      create_topic(val.topic)
+    } else {
+      val.topic = relatedTopics[0]
+    }
+
+    update_topic_participants(user, val.topic)
+
+    create_message(user, val.topic, val.content)
+  }
 }
